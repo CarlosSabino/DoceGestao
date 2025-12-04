@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, ShoppingCart, Package, Trash2, Minus, DollarSign, Home, X, Loader2, LogOut, Lock, Mail, User } from 'lucide-react';
+import { Plus, Users, ShoppingCart, Package, Trash2, Minus, Home, X, Loader2, LogOut, Lock, Mail, User } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+
+// --- URL DO LOGO ---
+const LOGO_URL = "http://googleusercontent.com/image_generation_content/0";
 
 // --- CONFIGURAÇÃO DO FIREBASE ---
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
@@ -32,7 +35,7 @@ const Card = ({ children, className = "" }) => (
 
 const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, loading = false, type="button" }) => {
   const variants = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white", // Azul forte
+    primary: "bg-blue-600 hover:bg-blue-700 text-white active:bg-blue-800", // Azul forte com feedback de toque
     secondary: "bg-cyan-600 hover:bg-cyan-700 text-white", // Ciano
     outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
     danger: "bg-red-500 hover:bg-red-600 text-white",
@@ -44,7 +47,8 @@ const Button = ({ children, onClick, variant = "primary", className = "", disabl
       type={type}
       onClick={onClick} 
       disabled={disabled || loading}
-      className={`px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 ${variants[variant]} ${className} ${(disabled || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+      // Adicionado 'active:scale-95' para dar feedback tátil visual ao tocar no celular
+      className={`px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 active:scale-95 ${variants[variant]} ${className} ${(disabled || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {loading ? <Loader2 className="animate-spin w-5 h-5" /> : children}
     </button>
@@ -88,12 +92,11 @@ const LoginScreen = () => {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 border border-blue-50">
-        <div className="flex justify-center mb-6">
-          <div className="bg-blue-100 p-4 rounded-full">
-            <DollarSign className="w-8 h-8 text-blue-600" />
-          </div>
+        <div className="flex flex-col items-center justify-center mb-6">
+          {/* LOGO INTEGRADO AQUI */}
+          <img src={LOGO_URL} alt="Pedroso Doces Logo" className="w-40 h-auto object-contain mb-4" />
         </div>
-        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Doce Gestão</h1>
+        
         <p className="text-center text-gray-500 mb-8">
           {isRegistering ? 'Crie sua conta grátis' : 'Entre para gerenciar'}
         </p>
@@ -400,12 +403,16 @@ export default function App() {
     return (
       <div className="space-y-6 pb-20">
         <header className="flex justify-between items-center mb-6">
-          <div>
-            {/* Agora exibe o Nome se disponível, ou o e-mail */}
-            <h1 className="text-2xl font-bold text-gray-800">
-              Olá, {user.displayName ? user.displayName.split(' ')[0] : 'Visitante'}!
-            </h1>
-            <p className="text-gray-500 text-sm truncate max-w-[200px]">{user.email}</p>
+          <div className="flex items-center gap-3">
+            {/* LOGO PEQUENO NO HEADER */}
+            <img src={LOGO_URL} alt="Pedroso Doces" className="w-12 h-12 rounded-full bg-blue-50 p-1 object-cover" />
+            <div>
+              {/* Agora exibe o Nome se disponível, ou o e-mail */}
+              <h1 className="text-xl font-bold text-gray-800">
+                Olá, {user.displayName ? user.displayName.split(' ')[0] : 'Visitante'}!
+              </h1>
+              <p className="text-gray-500 text-xs truncate max-w-[150px]">{user.email}</p>
+            </div>
           </div>
           <div className="flex gap-2">
             <button onClick={handleLogout} className="bg-white border border-gray-200 p-2 rounded-full hover:bg-gray-50 text-gray-600 shadow-sm transition-colors">
@@ -620,7 +627,9 @@ export default function App() {
   return (
     // FIX MOBILE: h-[100dvh] força altura exata da tela visível no celular
     // overflow-hidden impede que a tela inteira role, apenas o conteúdo interno
-    <div className="h-[100dvh] bg-slate-50 font-sans text-gray-900 flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
+    // select-none impede a seleção de texto como num site
+    // overscroll-none impede o efeito de 'mola' do navegador
+    <div className="h-[100dvh] bg-slate-50 font-sans text-gray-900 flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative select-none overscroll-none">
       
       {/* Conteúdo rolável */}
       <main className="flex-1 p-5 overflow-y-auto">

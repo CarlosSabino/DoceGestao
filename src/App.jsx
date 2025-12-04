@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, ShoppingCart, Package, Trash2, Save, Minus, DollarSign, Home, X, Loader2, LogOut } from 'lucide-react';
+import { Plus, Users, ShoppingCart, Package, Trash2, Minus, DollarSign, Home, X, Loader2, LogOut, Lock, Mail } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, signOut } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 // --- CONFIGURAÇÃO DO FIREBASE ---
@@ -18,7 +18,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// CORREÇÃO: Sanitiza o ID do app para remover barras '/' ou pontos '.' que quebram o caminho do Firestore
+// Sanitiza o ID do app para evitar erros de caminho
 const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'doce-gestao-app';
 const appId = rawAppId.replace(/[\/.]/g, '_');
 
@@ -30,7 +30,7 @@ const Card = ({ children, className = "" }) => (
   </div>
 );
 
-const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, loading = false }) => {
+const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, loading = false, type="button" }) => {
   const variants = {
     primary: "bg-pink-500 hover:bg-pink-600 text-white",
     secondary: "bg-purple-500 hover:bg-purple-600 text-white",
@@ -41,12 +41,104 @@ const Button = ({ children, onClick, variant = "primary", className = "", disabl
 
   return (
     <button 
+      type={type}
       onClick={onClick} 
       disabled={disabled || loading}
-      className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 ${variants[variant]} ${className} ${(disabled || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
+      className={`px-4 py-3 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 active:scale-95 ${variants[variant]} ${className} ${(disabled || loading) ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {loading ? <Loader2 className="animate-spin w-5 h-5" /> : children}
     </button>
+  );
+};
+
+// --- NOVA TELA DE LOGIN ---
+const LoginScreen = () => {
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      if (isRegistering) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/invalid-credential') setError('E-mail ou senha incorretos.');
+      else if (err.code === 'auth/email-already-in-use') setError('Este e-mail já está cadastrado.');
+      else if (err.code === 'auth/weak-password') setError('A senha deve ter pelo menos 6 caracteres.');
+      else setError('Erro ao conectar (' + err.code + ')');
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 font-sans">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
+        <div className="flex justify-center mb-6">
+          <div className="bg-pink-100 p-4 rounded-full">
+            <DollarSign className="w-8 h-8 text-pink-600" />
+          </div>
+        </div>
+        <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Doce Gestão</h1>
+        <p className="text-center text-gray-500 mb-8">
+          {isRegistering ? 'Crie sua conta grátis' : 'Entre para gerenciar'}
+        </p>
+
+        <form onSubmit={handleAuth} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+              <input 
+                type="email" 
+                required
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+              <input 
+                type="password" 
+                required
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                placeholder="******"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">{error}</p>}
+
+          <Button type="submit" loading={loading} className="w-full shadow-lg shadow-pink-200">
+            {isRegistering ? 'Criar Conta' : 'Entrar'}
+          </Button>
+        </form>
+
+        <div className="mt-6 text-center border-t border-gray-100 pt-4">
+          <button 
+            onClick={() => setIsRegistering(!isRegistering)}
+            className="text-pink-600 hover:text-pink-700 text-sm font-medium transition-colors"
+          >
+            {isRegistering ? 'Já tem conta? Fazer Login' : 'Não tem conta? Cadastre-se'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -73,20 +165,8 @@ export default function App() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [processing, setProcessing] = useState(false);
 
+  // Monitora se o usuário está logado
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (error) {
-        console.error("Erro na autenticação:", error);
-      }
-    };
-    initAuth();
-    
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoadingAuth(false);
@@ -94,26 +174,27 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
+  // Carrega dados APENAS se houver usuário logado
   useEffect(() => {
     if (!user) return;
 
-    // AVISO: O 'appId' agora é sanitizado para garantir que o caminho seja válido
+    // Caminho seguro: /artifacts/{appId}/users/{userId}/...
     const basePath = (coll) => collection(db, 'artifacts', appId, 'users', user.uid, coll);
 
     const unsubProducts = onSnapshot(basePath('products'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setProducts(data.sort((a, b) => a.name.localeCompare(b.name)));
-    }, (error) => console.error("Erro ao carregar produtos:", error));
+    }, (error) => console.error("Erro prod:", error));
 
     const unsubCustomers = onSnapshot(basePath('customers'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setCustomers(data.sort((a, b) => a.name.localeCompare(b.name)));
-    }, (error) => console.error("Erro ao carregar clientes:", error));
+    }, (error) => console.error("Erro cust:", error));
 
     const unsubSales = onSnapshot(basePath('sales'), (snapshot) => {
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setSalesLog(data.sort((a, b) => (b.date?.seconds || 0) - (a.date?.seconds || 0)));
-    }, (error) => console.error("Erro ao carregar vendas:", error));
+    }, (error) => console.error("Erro sale:", error));
 
     return () => {
       unsubProducts();
@@ -124,6 +205,12 @@ export default function App() {
 
   const formatMoney = (value) => {
     return (Number(value) || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const handleLogout = () => {
+    if(confirm("Deseja sair da conta?")) {
+        signOut(auth);
+    }
   };
 
   const addProduct = async () => {
@@ -270,11 +357,17 @@ export default function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
         <Loader2 className="animate-spin text-pink-500 w-12 h-12 mb-4" />
-        <p className="text-gray-500">Carregando sistema...</p>
+        <p className="text-gray-500">Iniciando sistema...</p>
       </div>
     );
   }
 
+  // LÓGICA DE PROTEÇÃO: Se não tiver usuário, exibe LOGIN
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  // Se tiver usuário, exibe o DASHBOARD
   const renderDashboard = () => {
     const totalReceivable = customers.reduce((acc, c) => acc + (c.balance || 0), 0);
     const lowStock = products.filter(p => p.stock < 5);
@@ -284,20 +377,22 @@ export default function App() {
         <header className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Olá!</h1>
-            <p className="text-gray-500 text-sm">ID: {user?.uid?.slice(0, 6)}...</p>
+            <p className="text-gray-500 text-sm truncate max-w-[200px]">{user.email}</p>
           </div>
-          <div className="bg-pink-100 p-2 rounded-full">
-            <DollarSign className="text-pink-600" />
+          <div className="flex gap-2">
+            <button onClick={handleLogout} className="bg-white border border-gray-200 p-2 rounded-full hover:bg-gray-50 text-gray-600 shadow-sm">
+                <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </header>
 
         <div className="grid grid-cols-2 gap-4">
-          <Card className="bg-gradient-to-br from-pink-500 to-rose-400 border-none text-white">
+          <Card className="bg-gradient-to-br from-pink-500 to-rose-400 border-none text-white shadow-pink-200">
             <p className="text-pink-100 text-sm mb-1">Total a Receber</p>
             <h2 className="text-2xl font-bold">{formatMoney(totalReceivable)}</h2>
           </Card>
           
-          <Card className="bg-gradient-to-br from-purple-500 to-indigo-400 border-none text-white">
+          <Card className="bg-gradient-to-br from-purple-500 to-indigo-400 border-none text-white shadow-purple-200">
             <p className="text-purple-100 text-sm mb-1">Total em Estoque</p>
             <h2 className="text-2xl font-bold">{products.reduce((acc, p) => acc + p.stock, 0)} items</h2>
           </Card>
@@ -342,7 +437,7 @@ export default function App() {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
           <select 
-            className="w-full p-3 rounded-lg border border-gray-300 bg-white"
+            className="w-full p-3 rounded-lg border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
             value={selectedCustomerForSale}
             onChange={(e) => setSelectedCustomerForSale(e.target.value)}
           >
@@ -361,10 +456,10 @@ export default function App() {
                 key={p.id}
                 onClick={() => addToCart(p)}
                 disabled={p.stock <= 0}
-                className={`p-3 rounded-xl border text-left transition-all ${
+                className={`p-3 rounded-xl border text-left transition-all shadow-sm ${
                   p.stock > 0 
                     ? 'bg-white border-gray-200 hover:border-pink-300 active:bg-pink-50' 
-                    : 'bg-gray-100 border-gray-200 opacity-60 cursor-not-allowed'
+                    : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
                 }`}
               >
                 <div className="font-bold text-gray-800 text-sm truncate">{p.name}</div>
@@ -384,7 +479,7 @@ export default function App() {
                 {cart.map(item => (
                   <div key={item.id} className="flex justify-between items-center py-1 px-1">
                     <div className="flex items-center gap-2">
-                      <button onClick={() => removeFromCart(item.id)} className="text-red-400"><X size={16}/></button>
+                      <button onClick={() => removeFromCart(item.id)} className="text-red-400 hover:text-red-600"><X size={16}/></button>
                       <span className="text-sm">{item.qty}x {item.name}</span>
                     </div>
                     <span className="text-sm font-medium">{formatMoney(item.price * item.qty)}</span>
@@ -395,12 +490,12 @@ export default function App() {
                 <span className="font-bold text-lg">Total:</span>
                 <span className="font-bold text-2xl text-pink-600">{formatMoney(cartTotal)}</span>
               </div>
-              <Button onClick={finalizeSale} loading={processing} className="w-full py-3 text-lg">
+              <Button onClick={finalizeSale} loading={processing} className="w-full py-3 text-lg shadow-lg shadow-pink-200">
                 Confirmar Venda
               </Button>
             </>
           ) : (
-            <div className="text-center text-gray-400 py-4">
+            <div className="text-center text-gray-400 py-4 border-2 border-dashed border-gray-200 rounded-lg">
               Carrinho vazio
             </div>
           )}
@@ -413,7 +508,7 @@ export default function App() {
     <div className="pb-20">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Estoque</h2>
-        <Button onClick={() => setIsProductModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+        <Button onClick={() => setIsProductModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center shadow-lg shadow-pink-200">
           <Plus size={24} />
         </Button>
       </div>
@@ -429,9 +524,9 @@ export default function App() {
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-center">
                  <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
-                    <button onClick={() => updateStock(p, -1)} className="text-gray-500 active:text-pink-600"><Minus size={16}/></button>
+                    <button onClick={() => updateStock(p, -1)} className="text-gray-500 active:text-pink-600 hover:bg-gray-200 rounded p-1"><Minus size={16}/></button>
                     <span className="w-6 text-center font-bold text-sm">{p.stock}</span>
-                    <button onClick={() => updateStock(p, 1)} className="text-gray-500 active:text-green-600"><Plus size={16}/></button>
+                    <button onClick={() => updateStock(p, 1)} className="text-gray-500 active:text-green-600 hover:bg-gray-200 rounded p-1"><Plus size={16}/></button>
                  </div>
               </div>
               <button onClick={() => deleteProduct(p.id)} className="text-gray-300 hover:text-red-500 ml-2">
@@ -448,7 +543,7 @@ export default function App() {
     <div className="pb-20">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Clientes</h2>
-        <Button onClick={() => setIsCustomerModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center">
+        <Button onClick={() => setIsCustomerModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center shadow-lg shadow-pink-200">
           <Plus size={24} />
         </Button>
       </div>
@@ -459,7 +554,7 @@ export default function App() {
           <Card key={c.id} className="flex flex-col gap-3">
             <div className="flex justify-between items-start">
               <div className="flex items-center gap-3">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${c.balance > 0 ? 'bg-red-400' : 'bg-green-400'}`}>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white shadow-sm ${c.balance > 0 ? 'bg-red-400' : 'bg-green-400'}`}>
                     {c.name.charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -477,7 +572,7 @@ export default function App() {
             {c.balance > 0 && (
                 <Button 
                     variant="outline" 
-                    className="w-full text-sm py-1 border-green-200 text-green-700 hover:bg-green-50"
+                    className="w-full text-sm py-2 border-green-200 text-green-700 hover:bg-green-50"
                     onClick={() => {
                         setSelectedCustomerForPayment(c);
                         setIsPaymentModalOpen(true);
@@ -492,6 +587,8 @@ export default function App() {
     </div>
   );
 
+  // --- RENDERIZAÇÃO PRINCIPAL ---
+  
   return (
     <div className="min-h-screen bg-gray-50 font-sans text-gray-900 flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
       <main className="flex-1 p-5 overflow-y-auto">
@@ -501,7 +598,8 @@ export default function App() {
         {activeTab === 'customers' && renderCustomers()}
       </main>
 
-      <nav className="bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center absolute bottom-0 w-full z-10">
+      {/* Menu Inferior */}
+      <nav className="bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center absolute bottom-0 w-full z-10 shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
         <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-pink-600' : 'text-gray-400'}`}>
           <Home size={24} /> <span className="text-xs font-medium">Início</span>
         </button>
@@ -516,28 +614,29 @@ export default function App() {
         </button>
       </nav>
 
+      {/* MODAL PRODUTO */}
       {isProductModalOpen && (
-        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold mb-4">Novo Produto</h3>
             <div className="space-y-3">
               <input 
                 placeholder="Nome" 
-                className="w-full border p-2 rounded-lg"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
                 value={newProduct.name}
                 onChange={e => setNewProduct({...newProduct, name: e.target.value})}
               />
               <input 
                 placeholder="Preço" 
                 type="number" 
-                className="w-full border p-2 rounded-lg"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
                 value={newProduct.price}
                 onChange={e => setNewProduct({...newProduct, price: e.target.value})}
               />
               <input 
                 placeholder="Estoque Inicial" 
                 type="number" 
-                className="w-full border p-2 rounded-lg"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
                 value={newProduct.stock}
                 onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
               />
@@ -550,14 +649,15 @@ export default function App() {
         </div>
       )}
 
+      {/* MODAL CLIENTE */}
       {isCustomerModalOpen && (
-        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold mb-4">Novo Cliente</h3>
             <div className="space-y-3">
               <input 
                 placeholder="Nome do Cliente" 
-                className="w-full border p-2 rounded-lg"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
                 value={newCustomer.name}
                 onChange={e => setNewCustomer({...newCustomer, name: e.target.value})}
               />
@@ -570,9 +670,10 @@ export default function App() {
         </div>
       )}
 
+      {/* MODAL PAGAMENTO */}
       {isPaymentModalOpen && selectedCustomerForPayment && (
-        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl">
+        <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-xs p-6 shadow-xl animate-in fade-in zoom-in duration-200">
             <h3 className="text-lg font-bold mb-2">Receber de {selectedCustomerForPayment.name}</h3>
             <p className="text-sm text-gray-500 mb-4">Dívida: {formatMoney(selectedCustomerForPayment.balance)}</p>
             <div className="space-y-3">
@@ -580,13 +681,13 @@ export default function App() {
                 placeholder="0.00" 
                 type="number" 
                 autoFocus
-                className="w-full border p-2 rounded-lg text-lg font-bold text-green-600"
+                className="w-full border p-3 rounded-lg text-lg font-bold text-green-600 outline-none focus:ring-2 focus:ring-green-500"
                 value={paymentAmount}
                 onChange={e => setPaymentAmount(e.target.value)}
               />
               <div className="flex gap-2 pt-2">
                 <Button variant="ghost" onClick={() => setIsPaymentModalOpen(false)} className="flex-1">Cancelar</Button>
-                <Button onClick={processPayment} loading={processing} variant="primary" className="flex-1 bg-green-600 hover:bg-green-700">Confirmar</Button>
+                <Button onClick={processPayment} loading={processing} variant="primary" className="flex-1 bg-green-600 hover:bg-green-700 shadow-lg shadow-green-100">Confirmar</Button>
               </div>
             </div>
           </div>

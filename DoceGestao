@@ -5,11 +5,20 @@ import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken, 
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 // --- CONFIGURAÇÃO DO FIREBASE ---
-// Nota: Em um ambiente real de produção, substitua estas variáveis pelas chaves do seu projeto Firebase.
-const firebaseConfig = JSON.parse(__firebase_config);
+// PARA O VERCEL: Substitua os valores abaixo pelos dados do seu projeto Firebase (Passo 4 do guia)
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+  apiKey: "AIzaSyBC2AqTBp712u1kol1BF17p_92WajvqMN0",
+  authDomain: "docegestao-d887e.firebaseapp.com",
+  projectId: "docegestao-d887e",
+  storageBucket: "docegestao-d887e.firebasestorage.app",
+  messagingSenderId: "488336019522",
+  appId: "1:488336019522:web:0d15ff0d7b05f54e46dddb"
+};
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+// Se estiver rodando no Vercel, usa um ID fixo, se for no preview, usa o ID do ambiente
 const appId = typeof __app_id !== 'undefined' ? __app_id : 'doce-gestao-app';
 
 // --- COMPONENTES UI ---

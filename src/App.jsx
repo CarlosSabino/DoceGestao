@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, ShoppingCart, Package, Trash2, Minus, DollarSign, Home, X, Loader2, LogOut, Lock, Mail } from 'lucide-react';
+import { Plus, Users, ShoppingCart, Package, Trash2, Minus, DollarSign, Home, X, Loader2, LogOut, Lock, Mail, User } from 'lucide-react';
 import { initializeApp } from 'firebase/app';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from 'firebase/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
 // --- CONFIGURAÇÃO DO FIREBASE ---
@@ -25,15 +25,15 @@ const appId = rawAppId.replace(/[\/.]/g, '_');
 // --- COMPONENTES UI ---
 
 const Card = ({ children, className = "" }) => (
-  <div className={`bg-white rounded-xl shadow-sm border border-pink-100 p-4 ${className}`}>
+  <div className={`bg-white rounded-xl shadow-sm border border-blue-100 p-4 ${className}`}>
     {children}
   </div>
 );
 
 const Button = ({ children, onClick, variant = "primary", className = "", disabled = false, loading = false, type="button" }) => {
   const variants = {
-    primary: "bg-pink-500 hover:bg-pink-600 text-white",
-    secondary: "bg-purple-500 hover:bg-purple-600 text-white",
+    primary: "bg-blue-600 hover:bg-blue-700 text-white", // Azul forte
+    secondary: "bg-cyan-600 hover:bg-cyan-700 text-white", // Ciano
     outline: "border border-gray-300 text-gray-700 hover:bg-gray-50",
     danger: "bg-red-500 hover:bg-red-600 text-white",
     ghost: "text-gray-500 hover:bg-gray-100"
@@ -51,9 +51,10 @@ const Button = ({ children, onClick, variant = "primary", className = "", disabl
   );
 };
 
-// --- NOVA TELA DE LOGIN ---
+// --- TELA DE LOGIN ---
 const LoginScreen = () => {
   const [isRegistering, setIsRegistering] = useState(false);
+  const [name, setName] = useState(''); // Novo estado para o Nome
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -65,7 +66,12 @@ const LoginScreen = () => {
     setLoading(true);
     try {
       if (isRegistering) {
-        await createUserWithEmailAndPassword(auth, email, password);
+        // Cria o usuário
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        // Atualiza o perfil com o Nome
+        await updateProfile(userCredential.user, { displayName: name });
+        // Força recarregamento da página para exibir o nome corretamente na primeira vez
+        window.location.reload();
       } else {
         await signInWithEmailAndPassword(auth, email, password);
       }
@@ -80,11 +86,11 @@ const LoginScreen = () => {
   };
 
   return (
-    <div className="min-h-screen bg-pink-50 flex flex-col items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
+      <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 border border-blue-50">
         <div className="flex justify-center mb-6">
-          <div className="bg-pink-100 p-4 rounded-full">
-            <DollarSign className="w-8 h-8 text-pink-600" />
+          <div className="bg-blue-100 p-4 rounded-full">
+            <DollarSign className="w-8 h-8 text-blue-600" />
           </div>
         </div>
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">Doce Gestão</h1>
@@ -93,6 +99,25 @@ const LoginScreen = () => {
         </p>
 
         <form onSubmit={handleAuth} className="space-y-4">
+          
+          {/* Campo Nome (Aparece apenas no cadastro) */}
+          {isRegistering && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Seu Nome</label>
+              <div className="relative">
+                <User className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <input 
+                  type="text" 
+                  required
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
+                  placeholder="Ex: Carlos"
+                  value={name}
+                  onChange={e => setName(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
             <div className="relative">
@@ -100,7 +125,7 @@ const LoginScreen = () => {
               <input 
                 type="email" 
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 placeholder="seu@email.com"
                 value={email}
                 onChange={e => setEmail(e.target.value)}
@@ -114,7 +139,7 @@ const LoginScreen = () => {
               <input 
                 type="password" 
                 required
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
                 placeholder="******"
                 value={password}
                 onChange={e => setPassword(e.target.value)}
@@ -122,9 +147,9 @@ const LoginScreen = () => {
             </div>
           </div>
 
-          {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">{error}</p>}
+          {error && <p className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100">{error}</p>}
 
-          <Button type="submit" loading={loading} className="w-full shadow-lg shadow-pink-200">
+          <Button type="submit" loading={loading} className="w-full shadow-lg shadow-blue-200">
             {isRegistering ? 'Criar Conta' : 'Entrar'}
           </Button>
         </form>
@@ -132,7 +157,7 @@ const LoginScreen = () => {
         <div className="mt-6 text-center border-t border-gray-100 pt-4">
           <button 
             onClick={() => setIsRegistering(!isRegistering)}
-            className="text-pink-600 hover:text-pink-700 text-sm font-medium transition-colors"
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
           >
             {isRegistering ? 'Já tem conta? Fazer Login' : 'Não tem conta? Cadastre-se'}
           </button>
@@ -355,8 +380,8 @@ export default function App() {
 
   if (loadingAuth) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-        <Loader2 className="animate-spin text-pink-500 w-12 h-12 mb-4" />
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <Loader2 className="animate-spin text-blue-500 w-12 h-12 mb-4" />
         <p className="text-gray-500">Iniciando sistema...</p>
       </div>
     );
@@ -376,24 +401,27 @@ export default function App() {
       <div className="space-y-6 pb-20">
         <header className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Olá!</h1>
+            {/* Agora exibe o Nome se disponível, ou o e-mail */}
+            <h1 className="text-2xl font-bold text-gray-800">
+              Olá, {user.displayName ? user.displayName.split(' ')[0] : 'Visitante'}!
+            </h1>
             <p className="text-gray-500 text-sm truncate max-w-[200px]">{user.email}</p>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleLogout} className="bg-white border border-gray-200 p-2 rounded-full hover:bg-gray-50 text-gray-600 shadow-sm">
+            <button onClick={handleLogout} className="bg-white border border-gray-200 p-2 rounded-full hover:bg-gray-50 text-gray-600 shadow-sm transition-colors">
                 <LogOut className="w-5 h-5" />
             </button>
           </div>
         </header>
 
         <div className="grid grid-cols-2 gap-4">
-          <Card className="bg-gradient-to-br from-pink-500 to-rose-400 border-none text-white shadow-pink-200">
-            <p className="text-pink-100 text-sm mb-1">Total a Receber</p>
+          <Card className="bg-gradient-to-br from-blue-600 to-blue-400 border-none text-white shadow-lg shadow-blue-200">
+            <p className="text-blue-100 text-sm mb-1">Total a Receber</p>
             <h2 className="text-2xl font-bold">{formatMoney(totalReceivable)}</h2>
           </Card>
           
-          <Card className="bg-gradient-to-br from-purple-500 to-indigo-400 border-none text-white shadow-purple-200">
-            <p className="text-purple-100 text-sm mb-1">Total em Estoque</p>
+          <Card className="bg-gradient-to-br from-cyan-500 to-teal-400 border-none text-white shadow-lg shadow-cyan-200">
+            <p className="text-cyan-50 text-sm mb-1">Total em Estoque</p>
             <h2 className="text-2xl font-bold">{products.reduce((acc, p) => acc + p.stock, 0)} items</h2>
           </Card>
         </div>
@@ -402,7 +430,7 @@ export default function App() {
           <h3 className="font-bold text-gray-700 mb-3">Ações Rápidas</h3>
           <Button 
             variant="primary" 
-            className="w-full py-4 text-lg shadow-md shadow-pink-200"
+            className="w-full py-4 text-lg shadow-lg shadow-blue-100"
             onClick={() => setActiveTab('sales')}
           >
             <ShoppingCart className="w-5 h-5" />
@@ -437,7 +465,7 @@ export default function App() {
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Cliente</label>
           <select 
-            className="w-full p-3 rounded-lg border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-pink-500 focus:border-pink-500 outline-none"
+            className="w-full p-3 rounded-lg border border-gray-300 bg-white shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
             value={selectedCustomerForSale}
             onChange={(e) => setSelectedCustomerForSale(e.target.value)}
           >
@@ -458,13 +486,13 @@ export default function App() {
                 disabled={p.stock <= 0}
                 className={`p-3 rounded-xl border text-left transition-all shadow-sm ${
                   p.stock > 0 
-                    ? 'bg-white border-gray-200 hover:border-pink-300 active:bg-pink-50' 
+                    ? 'bg-white border-gray-200 hover:border-blue-300 active:bg-blue-50' 
                     : 'bg-gray-50 border-gray-200 opacity-60 cursor-not-allowed'
                 }`}
               >
                 <div className="font-bold text-gray-800 text-sm truncate">{p.name}</div>
                 <div className="flex justify-between items-center mt-2">
-                  <span className="text-pink-600 font-bold">{formatMoney(p.price)}</span>
+                  <span className="text-blue-600 font-bold">{formatMoney(p.price)}</span>
                   <span className="text-xs text-gray-500">{p.stock} un</span>
                 </div>
               </button>
@@ -488,9 +516,9 @@ export default function App() {
               </div>
               <div className="flex justify-between items-center mb-4">
                 <span className="font-bold text-lg">Total:</span>
-                <span className="font-bold text-2xl text-pink-600">{formatMoney(cartTotal)}</span>
+                <span className="font-bold text-2xl text-blue-600">{formatMoney(cartTotal)}</span>
               </div>
-              <Button onClick={finalizeSale} loading={processing} className="w-full py-3 text-lg shadow-lg shadow-pink-200">
+              <Button onClick={finalizeSale} loading={processing} className="w-full py-3 text-lg shadow-lg shadow-blue-100">
                 Confirmar Venda
               </Button>
             </>
@@ -508,7 +536,7 @@ export default function App() {
     <div className="pb-20">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Estoque</h2>
-        <Button onClick={() => setIsProductModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center shadow-lg shadow-pink-200">
+        <Button onClick={() => setIsProductModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center shadow-lg shadow-blue-100">
           <Plus size={24} />
         </Button>
       </div>
@@ -519,12 +547,12 @@ export default function App() {
           <Card key={p.id} className="flex justify-between items-center">
             <div>
               <h3 className="font-bold text-gray-800">{p.name}</h3>
-              <p className="text-pink-600 font-medium">{formatMoney(p.price)}</p>
+              <p className="text-blue-600 font-medium">{formatMoney(p.price)}</p>
             </div>
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-center">
                  <div className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1">
-                    <button onClick={() => updateStock(p, -1)} className="text-gray-500 active:text-pink-600 hover:bg-gray-200 rounded p-1"><Minus size={16}/></button>
+                    <button onClick={() => updateStock(p, -1)} className="text-gray-500 active:text-blue-600 hover:bg-gray-200 rounded p-1"><Minus size={16}/></button>
                     <span className="w-6 text-center font-bold text-sm">{p.stock}</span>
                     <button onClick={() => updateStock(p, 1)} className="text-gray-500 active:text-green-600 hover:bg-gray-200 rounded p-1"><Plus size={16}/></button>
                  </div>
@@ -543,7 +571,7 @@ export default function App() {
     <div className="pb-20">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Clientes</h2>
-        <Button onClick={() => setIsCustomerModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center shadow-lg shadow-pink-200">
+        <Button onClick={() => setIsCustomerModalOpen(true)} className="rounded-full w-10 h-10 p-0 flex items-center justify-center shadow-lg shadow-blue-100">
           <Plus size={24} />
         </Button>
       </div>
@@ -590,7 +618,11 @@ export default function App() {
   // --- RENDERIZAÇÃO PRINCIPAL ---
   
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-900 flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
+    // FIX MOBILE: h-[100dvh] força altura exata da tela visível no celular
+    // overflow-hidden impede que a tela inteira role, apenas o conteúdo interno
+    <div className="h-[100dvh] bg-slate-50 font-sans text-gray-900 flex flex-col max-w-md mx-auto shadow-2xl overflow-hidden relative">
+      
+      {/* Conteúdo rolável */}
       <main className="flex-1 p-5 overflow-y-auto">
         {activeTab === 'dashboard' && renderDashboard()}
         {activeTab === 'sales' && renderSales()}
@@ -598,18 +630,18 @@ export default function App() {
         {activeTab === 'customers' && renderCustomers()}
       </main>
 
-      {/* Menu Inferior */}
-      <nav className="bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center absolute bottom-0 w-full z-10 shadow-[0_-5px_10px_rgba(0,0,0,0.05)]">
-        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-pink-600' : 'text-gray-400'}`}>
+      {/* Menu Inferior Fixo e Visível */}
+      <nav className="bg-white border-t border-gray-200 px-6 py-3 flex justify-between items-center w-full shadow-[0_-5px_10px_rgba(0,0,0,0.05)] shrink-0 z-50">
+        <button onClick={() => setActiveTab('dashboard')} className={`flex flex-col items-center gap-1 ${activeTab === 'dashboard' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Home size={24} /> <span className="text-xs font-medium">Início</span>
         </button>
-        <button onClick={() => setActiveTab('sales')} className={`flex flex-col items-center gap-1 ${activeTab === 'sales' ? 'text-pink-600' : 'text-gray-400'}`}>
+        <button onClick={() => setActiveTab('sales')} className={`flex flex-col items-center gap-1 ${activeTab === 'sales' ? 'text-blue-600' : 'text-gray-400'}`}>
           <ShoppingCart size={24} /> <span className="text-xs font-medium">Venda</span>
         </button>
-        <button onClick={() => setActiveTab('inventory')} className={`flex flex-col items-center gap-1 ${activeTab === 'inventory' ? 'text-pink-600' : 'text-gray-400'}`}>
+        <button onClick={() => setActiveTab('inventory')} className={`flex flex-col items-center gap-1 ${activeTab === 'inventory' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Package size={24} /> <span className="text-xs font-medium">Estoque</span>
         </button>
-        <button onClick={() => setActiveTab('customers')} className={`flex flex-col items-center gap-1 ${activeTab === 'customers' ? 'text-pink-600' : 'text-gray-400'}`}>
+        <button onClick={() => setActiveTab('customers')} className={`flex flex-col items-center gap-1 ${activeTab === 'customers' ? 'text-blue-600' : 'text-gray-400'}`}>
           <Users size={24} /> <span className="text-xs font-medium">Clientes</span>
         </button>
       </nav>
@@ -622,21 +654,21 @@ export default function App() {
             <div className="space-y-3">
               <input 
                 placeholder="Nome" 
-                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 value={newProduct.name}
                 onChange={e => setNewProduct({...newProduct, name: e.target.value})}
               />
               <input 
                 placeholder="Preço" 
                 type="number" 
-                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 value={newProduct.price}
                 onChange={e => setNewProduct({...newProduct, price: e.target.value})}
               />
               <input 
                 placeholder="Estoque Inicial" 
                 type="number" 
-                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 value={newProduct.stock}
                 onChange={e => setNewProduct({...newProduct, stock: e.target.value})}
               />
@@ -657,7 +689,7 @@ export default function App() {
             <div className="space-y-3">
               <input 
                 placeholder="Nome do Cliente" 
-                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-pink-500"
+                className="w-full border p-3 rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
                 value={newCustomer.name}
                 onChange={e => setNewCustomer({...newCustomer, name: e.target.value})}
               />

@@ -4,9 +4,6 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut, updateProfile } from 'firebase/auth';
 import { getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 
-// --- URL DO LOGO ---
-const LOGO_URL = "http://googleusercontent.com/image_generation_content/0";
-
 // --- CONFIGURAÇÃO DO FIREBASE ---
 const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
   apiKey: "AIzaSyBC2AqTBp712u1kol1BF17p_92WajvqMN0",
@@ -26,6 +23,42 @@ const rawAppId = typeof __app_id !== 'undefined' ? __app_id : 'doce-gestao-app';
 const appId = rawAppId.replace(/[\/.]/g, '_');
 
 // --- COMPONENTES UI ---
+
+// NOVO LOGO EM SVG (Não expira e carrega rápido)
+const PedrosoLogo = ({ className = "w-24 h-24" }) => (
+  <svg viewBox="0 0 100 120" className={className} xmlns="http://www.w3.org/2000/svg">
+    {/* Efeito de Sombra Base */}
+    <ellipse cx="50" cy="105" rx="30" ry="8" fill="#cbd5e1" opacity="0.5" />
+    
+    {/* Pedra 1 (Base - Teal) */}
+    <g transform="translate(0, 10)">
+      <path d="M20,80 Q20,65 50,65 Q80,65 80,80 Q80,95 50,95 Q20,95 20,80 Z" fill="#0d9488" />
+      <path d="M20,80 Q20,90 50,98 Q80,90 80,80" fill="none" stroke="#0f766e" strokeWidth="2" opacity="0.5" />
+      <ellipse cx="40" cy="75" rx="10" ry="4" fill="white" opacity="0.3" transform="rotate(-15 40 75)" />
+    </g>
+
+    {/* Pedra 2 (Meio - Cyan) */}
+    <g transform="translate(0, -5)">
+      <path d="M22,65 Q22,50 50,50 Q78,50 78,65 Q78,80 50,80 Q22,80 22,65 Z" fill="#06b6d4" />
+      <path d="M22,65 Q22,75 50,83 Q78,75 78,65" fill="none" stroke="#0891b2" strokeWidth="2" opacity="0.5" />
+      <ellipse cx="40" cy="60" rx="10" ry="4" fill="white" opacity="0.4" transform="rotate(-15 40 60)" />
+    </g>
+
+    {/* Pedra 3 (Topo - Blue) */}
+    <g transform="translate(0, -20)">
+      <path d="M25,50 Q25,35 50,35 Q75,35 75,50 Q75,65 50,65 Q25,65 25,50 Z" fill="#2563eb" />
+      <path d="M25,50 Q25,60 50,68 Q75,60 75,50" fill="none" stroke="#1d4ed8" strokeWidth="2" opacity="0.5" />
+      <ellipse cx="40" cy="45" rx="8" ry="3" fill="white" opacity="0.5" transform="rotate(-15 40 45)" />
+    </g>
+
+    {/* Gelinho (Detalhe no topo) */}
+    <g transform="rotate(30 65 15)">
+       <rect x="55" y="5" width="18" height="35" rx="8" fill="#22d3ee" stroke="#0e7490" strokeWidth="1.5"/>
+       <line x1="64" y1="40" x2="64" y2="50" stroke="#b45309" strokeWidth="4" strokeLinecap="round" />
+       <path d="M58,10 Q64,5 70,10" fill="none" stroke="white" strokeWidth="2" opacity="0.6" />
+    </g>
+  </svg>
+);
 
 const Card = ({ children, className = "" }) => (
   <div className={`bg-white rounded-xl shadow-sm border border-blue-100 p-4 ${className}`}>
@@ -93,8 +126,8 @@ const LoginScreen = () => {
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-xl p-8 border border-blue-50">
         <div className="flex flex-col items-center justify-center mb-6">
-          {/* LOGO INTEGRADO AQUI */}
-          <img src={LOGO_URL} alt="Pedroso Doces Logo" className="w-40 h-auto object-contain mb-4" />
+          {/* LOGO SVG NOVO */}
+          <PedrosoLogo className="w-32 h-32 drop-shadow-md" />
         </div>
         
         <p className="text-center text-gray-500 mb-8">
@@ -404,8 +437,8 @@ export default function App() {
       <div className="space-y-6 pb-20">
         <header className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-3">
-            {/* LOGO PEQUENO NO HEADER */}
-            <img src={LOGO_URL} alt="Pedroso Doces" className="w-12 h-12 rounded-full bg-blue-50 p-1 object-cover" />
+            {/* LOGO SVG NOVO (Pequeno) */}
+            <PedrosoLogo className="w-12 h-12 drop-shadow-sm" />
             <div>
               {/* Agora exibe o Nome se disponível, ou o e-mail */}
               <h1 className="text-xl font-bold text-gray-800">
